@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-voice"
+version = "0.1.0"
+description = "A universal voice layer for Hermes instances, profiles, and gateways."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "jayey" }
+]
+license = { text = "MIT" }
+dependencies = [
+  "PyYAML>=6.0",
+  "typer>=0.12",
+  "rich>=13.7"
+]
+keywords = ["hermes", "voice", "tts", "stt", "cli"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Environment :: Console"
+]
+
+[project.scripts]
+hermes-voice = "hermes_voice.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
