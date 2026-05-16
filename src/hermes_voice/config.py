@@ -144,7 +144,9 @@ def available_presets() -> list[str]:
     return sorted(PRESET_PATCHES.keys())
 
 
-def build_recommended_patch(tts: str = "edge", stt: str = "local", preset: str = "") -> dict[str, Any]:
+def build_recommended_patch(
+    tts: str = "edge", stt: str = "local", preset: str = ""
+) -> dict[str, Any]:
     if preset:
         if preset not in PRESET_PATCHES:
             raise ValueError(f"unknown preset: {preset}")
@@ -161,24 +163,36 @@ def build_recommended_patch(tts: str = "edge", stt: str = "local", preset: str =
 
 
 def render_patch_yaml(tts: str = "edge", stt: str = "local", preset: str = "") -> str:
-    return yaml.safe_dump(build_recommended_patch(tts=tts, stt=stt, preset=preset), sort_keys=False, allow_unicode=True)
+    return yaml.safe_dump(
+        build_recommended_patch(tts=tts, stt=stt, preset=preset),
+        sort_keys=False,
+        allow_unicode=True,
+    )
 
 
 def backup_path_for_config(cfg_path: Path) -> Path:
     return cfg_path.with_name(cfg_path.name + ".bak")
 
 
-def timestamped_backup_path_for_config(cfg_path: Path, stamp: str | None = None) -> Path:
+def timestamped_backup_path_for_config(
+    cfg_path: Path, stamp: str | None = None
+) -> Path:
     stamp = stamp or datetime.now().strftime("%Y%m%d-%H%M%S")
     return cfg_path.with_name(cfg_path.name + f".bak.{stamp}")
 
 
-def list_backups(path: Path | None = None, profile: str = "default") -> list[BackupInfo]:
+def list_backups(
+    path: Path | None = None, profile: str = "default"
+) -> list[BackupInfo]:
     cfg_path = path or hermes_config_path(profile=profile)
     latest = backup_path_for_config(cfg_path)
     pattern = cfg_path.name + ".bak*"
     backups = sorted(cfg_path.parent.glob(pattern), key=lambda p: p.name, reverse=True)
-    return [BackupInfo(path=str(item), name=item.name, is_latest=item == latest) for item in backups if item.is_file()]
+    return [
+        BackupInfo(path=str(item), name=item.name, is_latest=item == latest)
+        for item in backups
+        if item.is_file()
+    ]
 
 
 def apply_recommended_patch(
@@ -200,7 +214,9 @@ def apply_recommended_patch(
     base = load_config(cfg_path, profile=profile)
     patch = build_recommended_patch(tts=tts, stt=stt, preset=preset)
     merged = deep_merge(base, patch)
-    cfg_path.write_text(yaml.safe_dump(merged, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    cfg_path.write_text(
+        yaml.safe_dump(merged, sort_keys=False, allow_unicode=True), encoding="utf-8"
+    )
 
     return ApplyResult(
         config_path=str(cfg_path),
@@ -211,11 +227,21 @@ def apply_recommended_patch(
     )
 
 
-def restore_config_backup(path: Path | None = None, profile: str = "default", backup_name: str | None = None) -> RestoreResult:
+def restore_config_backup(
+    path: Path | None = None, profile: str = "default", backup_name: str | None = None
+) -> RestoreResult:
     cfg_path = path or hermes_config_path(profile=profile)
-    backup_path = cfg_path.parent / backup_name if backup_name else backup_path_for_config(cfg_path)
+    backup_path = (
+        cfg_path.parent / backup_name
+        if backup_name
+        else backup_path_for_config(cfg_path)
+    )
     if not backup_path.exists():
-        return RestoreResult(config_path=str(cfg_path), backup_path=str(backup_path), restored=False)
+        return RestoreResult(
+            config_path=str(cfg_path), backup_path=str(backup_path), restored=False
+        )
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
     cfg_path.write_text(backup_path.read_text(encoding="utf-8"), encoding="utf-8")
-    return RestoreResult(config_path=str(cfg_path), backup_path=str(backup_path), restored=True)
+    return RestoreResult(
+        config_path=str(cfg_path), backup_path=str(backup_path), restored=True
+    )

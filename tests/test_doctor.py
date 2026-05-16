@@ -1,4 +1,11 @@
-from hermes_voice.doctor import apply_doctor_fixes, build_fix_suggestion, is_python314_wrapper, run_doctor, runtime_source_label
+from hermes_voice.doctor import (
+    apply_doctor_fixes,
+    build_fix_suggestion,
+    check_microphone_input,
+    is_python314_wrapper,
+    run_doctor,
+    runtime_source_label,
+)
 
 
 def test_doctor_returns_report():
@@ -20,7 +27,9 @@ def test_is_python314_wrapper_detects_path():
 
 
 def test_build_fix_suggestion_for_python_module():
-    hint = build_fix_suggestion("py:faster_whisper", "current", "/Users/jayey/hermes-voice/.venv/bin/python3.14")
+    hint = build_fix_suggestion(
+        "py:faster_whisper", "current", "/Users/jayey/hermes-voice/.venv/bin/python3.14"
+    )
     assert "pip install faster_whisper" in hint
     assert "wrapper-runtime" in hint
     assert "Python 3.12/3.13 wrapper venv" in hint
@@ -35,7 +44,27 @@ def test_current_runtime_doctor_marks_python314_faster_whisper_hint():
 
 def test_apply_doctor_fixes_skips_python314_wrapper_faster_whisper():
     actions = apply_doctor_fixes(runtime="current")
-    target = next((item for item in actions if item.check_name == "py:faster_whisper"), None)
+    target = next(
+        (item for item in actions if item.check_name == "py:faster_whisper"), None
+    )
     if target is not None:
         assert target.skipped is True
         assert "Python 3.12/3.13 wrapper venv" in target.reason
+
+
+def test_microphone_input_reports_no_visible_devices(monkeypatch):
+    class FakeProc:
+        returncode = 0
+        stdout = '{"default": [-1, -1], "inputs": []}'
+        stderr = ""
+
+    monkeypatch.setattr(
+        "hermes_voice.doctor.subprocess.run", lambda *args, **kwargs: FakeProc()
+    )
+
+    result = check_microphone_input("/tmp/python", "wrapper-runtime")
+
+    assert result.name == "microphone_input"
+    assert result.ok is False
+    assert "0 input devices visible" in result.detail
+    assert "Microphone" in result.hint

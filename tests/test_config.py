@@ -25,7 +25,12 @@ def test_build_recommended_patch_applies_preset():
 
 
 def test_deep_merge_overwrites_scalars_and_merges_dicts():
-    base = {"voice": {"auto_tts": False, "tts": {"provider": "edge", "edge": {"voice": "A"}}}}
+    base = {
+        "voice": {
+            "auto_tts": False,
+            "tts": {"provider": "edge", "edge": {"voice": "A"}},
+        }
+    }
     patch = {"voice": {"auto_tts": True, "tts": {"edge": {"voice": "B"}}}}
     merged = deep_merge(base, patch)
     assert merged["voice"]["auto_tts"] is True
@@ -66,7 +71,9 @@ def test_run_smoke_restores_after_verify(tmp_path: Path):
     original = "voice:\n  auto_tts: false\n"
     cfg.write_text(original, encoding="utf-8")
 
-    result = run_smoke(profile="default", runtime="current", preset="zh-assistant", path=cfg)
+    result = run_smoke(
+        profile="default", runtime="current", preset="zh-assistant", path=cfg
+    )
 
     assert result["verify_checks"]
     assert result["restore_ok"] is True
@@ -78,7 +85,13 @@ def test_run_smoke_auto_fix_reports_actions(tmp_path: Path):
     original = "voice:\n  auto_tts: false\n"
     cfg.write_text(original, encoding="utf-8")
 
-    result = run_smoke(profile="default", runtime="current", preset="zh-assistant", path=cfg, auto_fix=True)
+    result = run_smoke(
+        profile="default",
+        runtime="current",
+        preset="zh-assistant",
+        path=cfg,
+        auto_fix=True,
+    )
 
     assert result["auto_fix"] is True
     assert isinstance(result["fix_actions"], list)
@@ -108,7 +121,9 @@ def test_restore_specific_backup_works_with_distinct_timestamp_names(tmp_path: P
     cfg.write_text("voice:\n  auto_tts: false\nversion: two\n", encoding="utf-8")
     second = apply_recommended_patch(path=cfg)
 
-    restored = restore_config_backup(path=cfg, backup_name=Path(second.backup_path).name)
+    restored = restore_config_backup(
+        path=cfg, backup_name=Path(second.backup_path).name
+    )
 
     assert restored.restored is True
     assert restored.backup_path == second.backup_path

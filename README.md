@@ -1,74 +1,93 @@
 # hermes-voice
 
-A universal voice layer for Hermes instances, profiles, and gateways.
+> A universal voice layer for Hermes instances, profiles, and gateways.
 
-## What it is
+[![CI](https://github.com/jayey425-beep/hermes-voice/actions/workflows/ci.yml/badge.svg)](https://github.com/jayey425-beep/hermes-voice/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](pyproject.toml)
 
-`hermes-voice` is a thin wrapper around Hermes Agent's built-in voice capabilities.
-It does not replace Hermes audio I/O internals. Instead, it helps you:
+---
 
-- inspect whether a Hermes runtime is actually voice-ready
-- generate safe config patches for voice mode
-- apply voice settings with backup + restore
-- verify local playback and STT/TTS dependencies
-- run a smoke test that restores config after verification
+## Quick Start
 
-## Why this exists
+```bash
+# Install
+pip install git+https://github.com/jayey425-beep/hermes-voice.git
 
-Hermes already has strong built-in voice features. The hard part is making them dependable across:
+# Check if Hermes is voice-ready
+hermes-voice doctor
 
-- multiple Hermes profiles
-- local wrappers / launchers
-- gateways and future external integrations
-- macOS machines with slightly different Python environments
+# Run a smoke test (apply preset → verify → auto-restore)
+hermes-voice smoke
+```
 
-`hermes-voice` provides a small operational layer around that.
+> **Prerequisite**: [Hermes Agent](https://hermes-agent.nousresearch.com) must be installed and on your `PATH`.
+
+---
+
+## Installation
+
+### From GitHub (recommended for users)
+
+```bash
+pip install git+https://github.com/jayey425-beep/hermes-voice.git
+```
+
+Or with [pipx](https://pipx.pypa.io) to keep it isolated:
+
+```bash
+pipx install git+https://github.com/jayey425-beep/hermes-voice.git
+```
+
+### Local development
+
+```bash
+git clone https://github.com/jayey425-beep/hermes-voice.git
+cd hermes-voice
+make install-dev
+# or: pip install -e .
+```
+
+### Verify it's installed
+
+```bash
+hermes-voice --help
+```
+
+---
 
 ## Commands
 
+| Command | Description |
+|---|---|
+| `doctor` | Check whether a Hermes runtime is voice-ready |
+| `inspect` | View current voice-related config snapshot |
+| `enable` | Preview or apply a voice config patch |
+| `restore` | List backups or restore a previous config |
+| `verify` | Run local audio self-checks |
+| `smoke` | Apply temp preset → full verify → auto-restore |
+| `chat` | Launch Hermes with auto-play of TTS audio |
+
 ### doctor
 
-Check whether a runtime is voice-capable.
+Check a runtime's voice readiness:
 
 ```bash
-hermes-voice doctor
-hermes-voice doctor --runtime hermes
-hermes-voice doctor --runtime current
+hermes-voice doctor                    # check the main Hermes runtime
+hermes-voice doctor --runtime current   # check the current process runtime
+hermes-voice doctor --fix               # attempt auto-fixes for missing deps
 ```
 
-Sources in output tell you where a failure lives:
-
+Sources in output pinpoint where a failure lives:
 - `hermes-runtime`
 - `wrapper-runtime`
 - `system`
 - `profile-config`
 - `environment`
 
-Use automatic fix mode for safe Python dependency installs:
-
-```bash
-hermes-voice doctor --runtime hermes --fix
-hermes-voice doctor --runtime current --fix
-```
-
-`doctor --fix` behavior:
-
-- installs missing Python modules when a direct `pip install <module>` is considered safe
-- skips non-Python checks
-- skips known-bad `faster_whisper` installs on wrapper Python 3.14 and explains why
-- reruns doctor and shows a post-fix summary
-
-If `faster_whisper` is missing under the wrapper runtime on Python 3.14, the tool now treats it as a compatibility-class issue, not a simple missing-package issue. Expect guidance like:
-
-```text
-/Users/jayey/hermes-voice/.venv/bin/python -m pip install faster_whisper |
-faster_whisper may fail on Python 3.14 because PyAV/av wheels are unavailable;
-prefer Hermes runtime or create a Python 3.12/3.13 wrapper venv.
-```
-
 ### inspect
 
-Inspect the current voice-related config snapshot for a profile.
+See current voice config for a profile:
 
 ```bash
 hermes-voice inspect
@@ -77,141 +96,149 @@ hermes-voice inspect --profile demo
 
 ### enable
 
-Preview or apply a recommended voice patch.
+Apply a recommended voice config patch with preset support:
 
 ```bash
-hermes-voice enable --dry-run
-hermes-voice enable --apply
+hermes-voice enable --dry-run                                 # preview changes (default)
+hermes-voice enable --apply                                    # write changes
 hermes-voice enable --apply --profile demo
-hermes-voice enable --apply --preset zh-assistant
+hermes-voice enable --apply --preset zh-assistant               # Chinese voice assistant
 hermes-voice enable --apply --preset podcast
 hermes-voice enable --apply --preset low-latency
 ```
 
-Available presets:
-
-- `zh-assistant`
-- `podcast`
-- `low-latency`
-
 `--apply` behavior:
-
-- creates a timestamped backup before writing
-- updates only the voice-related fields
-- keeps unrelated config keys intact
+- Creates a timestamped backup before writing
+- Updates only voice-related config fields
+- Keeps unrelated config keys intact
 
 ### restore
 
-List backups or restore a previous config version.
-
 ```bash
-hermes-voice restore --list
-hermes-voice restore
-hermes-voice restore --backup config.yaml.bak.20260513-130501
-hermes-voice restore --profile demo --list
+hermes-voice restore --list          # list available backups
+hermes-voice restore                 # restore latest backup
+hermes-voice restore --backup config.yaml.bak.20260513-130501  # specific version
 ```
-
-Behavior:
-
-- `restore --list` shows available timestamped backups and marks the latest one
-- `restore` restores the latest backup by default
-- `restore --backup <name>` restores a specific backup version
-- profile-specific configs restore from their own backup chain
 
 ### verify
 
-Run local verification checks.
+Run local audio self-checks:
 
 ```bash
-hermes-voice verify
-hermes-voice verify --full
+hermes-voice verify                  # quick check
+hermes-voice verify --full           # full: doctor + config + playback roundtrip
 hermes-voice verify --full --runtime hermes
 hermes-voice verify --full --runtime current
 ```
 
 Checks include:
-
-- local playback command availability
+- Microphone input device visibility
+- Local playback command availability
 - WAV synthesis/playback roundtrip
-- Hermes doctor checks when `--full` is enabled
-- profile voice config presence when `--full` is enabled
-- a `failure_scope` summary to show whether the failure is inside the selected runtime
+- Hermes doctor checks (with `--full`)
+- Profile voice config presence (with `--full`)
+- `failure_scope` summary showing where the failure lives
 
 ### smoke
 
-Apply a temporary preset, verify, then restore the config.
+Safely test a voice preset without permanent changes:
 
 ```bash
-hermes-voice smoke
-hermes-voice smoke --runtime hermes
-hermes-voice smoke --runtime current
+hermes-voice smoke                                     # zh-assistant preset, auto-restore
 hermes-voice smoke --preset podcast
-hermes-voice smoke --auto-fix
-```
-
-Behavior:
-
-- optionally runs `doctor --fix` first when `--auto-fix` is enabled
-- applies the selected preset to the target profile
-- runs `verify --full`
-- always attempts to restore the latest backup at the end
-- reports apply / verify / restore status separately
-- shows verify details and suggested fixes if verification fails
-- shows auto-fix actions before verification when enabled
-
-When `--auto-fix` is used on `--runtime current` with wrapper Python 3.14:
-
-- `faster_whisper` is classified as a compatibility issue
-- the tool records a skipped auto-fix action instead of looping on a doomed install
-- smoke still proceeds to apply / verify / restore so you can see the full picture
-
-## Typical flows
-
-### Check the real Hermes runtime
-
-```bash
-hermes-voice doctor --runtime hermes
-hermes-voice verify --full --runtime hermes
-```
-
-### Check the wrapper runtime separately
-
-```bash
-hermes-voice doctor --runtime current
-hermes-voice verify --full --runtime current
-```
-
-### Safely test a new preset and revert
-
-```bash
-hermes-voice smoke --preset zh-assistant
-```
-
-### Try safe dependency repair before smoke
-
-```bash
-hermes-voice smoke --runtime hermes --auto-fix
+hermes-voice smoke --runtime hermes --auto-fix          # fix deps first
 hermes-voice smoke --runtime current --auto-fix
 ```
+
+`smoke` always:
+1. (optionally) runs `doctor --fix` when `--auto-fix` is enabled
+2. Applies the selected preset
+3. Runs `verify --full`
+4. Restores the latest backup
+5. Reports apply / verify / restore status separately
+
+### chat
+
+Launch Hermes with auto-play of newly created TTS files:
+
+```bash
+hermes-voice chat                           # launch Hermes + auto-play TTS
+hermes-voice chat --no-autoplay             # launch Hermes only
+hermes-voice chat --verbose-autoplay
+hermes-voice chat -- --help                 # pass flags to Hermes itself
+```
+
+Watches `~/.hermes/audio_cache` and current directory for new audio files.
+Auto-plays `.ogg`, `.mp3`, `.wav`, `.m4a`, `.aac`, `.flac` files.
+Prefers `afplay` on macOS, falls back to `ffplay`.
+
+---
+
+## Typical workflows
+
+```bash
+# 1. First-time setup — check if voice is ready
+hermes-voice doctor --runtime hermes
+
+# 2. Apply a Chinese voice assistant preset
+hermes-voice enable --apply --preset zh-assistant
+
+# 3. Verify everything works
+hermes-voice verify --full --runtime hermes
+
+# 4. Start chatting
+hermes-voice chat
+```
+
+```bash
+# Safe testing flow — no permanent changes
+hermes-voice doctor --fix
+hermes-voice smoke --preset podcast --auto-fix
+```
+
+---
 
 ## Development
 
 ```bash
-cd /Users/jayey/hermes-voice
-. .venv/bin/activate
-pytest -q
+git clone https://github.com/jayey425-beep/hermes-voice.git
+cd hermes-voice
+make install-dev
+make test
 ```
 
-Current test status during development:
+### Project structure
 
-- unit tests passing
-- smoke path validated with automatic restore
-- runtime-specific failure classification verified
-- doctor auto-fix behavior verified for safe install vs skip cases
+```
+hermes-voice/
+├── src/hermes_voice/
+│   ├── cli.py         # CLI entry point (Typer)
+│   ├── config.py      # Config read/backup/restore
+│   ├── doctor.py      # Voice readiness diagnostics
+│   ├── enable.py      # Config patching
+│   ├── models.py      # Data models
+│   ├── report.py      # Output formatting (Rich)
+│   ├── utils.py       # Helpers
+│   └── verify.py      # Local audio self-tests
+├── tests/
+│   ├── test_cli.py    # CLI chat / audio tests
+│   ├── test_config.py
+│   ├── test_doctor.py
+│   ├── test_enable.py
+│   └── test_verify.py
+├── Makefile
+├── pyproject.toml
+└── README.md
+```
+
+---
 
 ## Notes
 
-- Hermes runtime and wrapper runtime may differ.
+- **Hermes runtime vs wrapper runtime** may differ on the same machine.
 - A failure in `current` does not necessarily mean Hermes itself is broken.
-- On this machine, Hermes runtime has passed `faster_whisper` checks while the wrapper runtime may fail due to Python 3.14 + PyAV compatibility.
-- For that case, prefer `--runtime hermes` or rebuild the wrapper venv with Python 3.12/3.13.
+- `faster_whisper` may fail on Python 3.14 due to PyAV wheel availability — prefer Python 3.12/3.13 for the wrapper.
+
+## License
+
+[MIT](LICENSE)

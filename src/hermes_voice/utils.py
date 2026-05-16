@@ -38,10 +38,10 @@ def hermes_python_path() -> str | None:
 
     resolved = str(Path(hermes_cli).resolve())
     if resolved.endswith("/bin/hermes"):
-        candidate = resolved[:-len("/bin/hermes")] + "/bin/python"
+        candidate = resolved[: -len("/bin/hermes")] + "/bin/python"
         if Path(candidate).exists():
             return candidate
-        candidate3 = resolved[:-len("/bin/hermes")] + "/bin/python3"
+        candidate3 = resolved[: -len("/bin/hermes")] + "/bin/python3"
         if Path(candidate3).exists():
             return candidate3
 
@@ -52,10 +52,16 @@ def current_python_path() -> str:
     return sys.executable
 
 
-def module_exists_in_python(python_path: str, module_name: str, timeout: int = 45) -> bool:
+def module_exists_in_python(
+    python_path: str, module_name: str, timeout: int = 45
+) -> bool:
     try:
         proc = subprocess.run(
-            [python_path, "-c", f"import importlib.util; raise SystemExit(0 if importlib.util.find_spec({module_name!r}) else 1)"],
+            [
+                python_path,
+                "-c",
+                f"import importlib.util; raise SystemExit(0 if importlib.util.find_spec({module_name!r}) else 1)",
+            ],
             capture_output=True,
             text=True,
             timeout=timeout,

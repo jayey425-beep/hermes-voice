@@ -12,7 +12,9 @@ from .doctor import apply_doctor_fixes
 from .verify import run_verify_full
 
 
-def build_enable_preview(tts: str = "edge", stt: str = "local", preset: str = "") -> dict[str, object]:
+def build_enable_preview(
+    tts: str = "edge", stt: str = "local", preset: str = ""
+) -> dict[str, object]:
     patch = build_recommended_patch(tts=tts, stt=stt, preset=preset)
     patch_yaml = render_patch_yaml(tts=tts, stt=stt, preset=preset)
     return {
@@ -23,7 +25,9 @@ def build_enable_preview(tts: str = "edge", stt: str = "local", preset: str = ""
     }
 
 
-def apply_enable_patch(profile: str = "default", tts: str = "edge", stt: str = "local", preset: str = "") -> dict[str, object]:
+def apply_enable_patch(
+    profile: str = "default", tts: str = "edge", stt: str = "local", preset: str = ""
+) -> dict[str, object]:
     result = apply_recommended_patch(profile=profile, tts=tts, stt=stt, preset=preset)
     return {
         "config_path": result.config_path,
@@ -35,7 +39,9 @@ def apply_enable_patch(profile: str = "default", tts: str = "edge", stt: str = "
     }
 
 
-def restore_enable_patch(profile: str = "default", backup_name: str | None = None) -> dict[str, object]:
+def restore_enable_patch(
+    profile: str = "default", backup_name: str | None = None
+) -> dict[str, object]:
     result = restore_config_backup(profile=profile, backup_name=backup_name)
     return {
         "config_path": result.config_path,
@@ -58,7 +64,9 @@ def run_smoke(
     path=None,
     auto_fix: bool = False,
 ) -> dict[str, object]:
-    fix_actions = apply_doctor_fixes(runtime=runtime, profile=profile) if auto_fix else []
+    fix_actions = (
+        apply_doctor_fixes(runtime=runtime, profile=profile) if auto_fix else []
+    )
     apply_result = apply_recommended_patch(path=path, profile=profile, preset=preset)
     verify_checks = []
     verify_ok = False
