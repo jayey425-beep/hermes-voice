@@ -29,6 +29,9 @@ classifiers = [
 [project.scripts]
 hermes-voice = "hermes_voice.cli:app"
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
